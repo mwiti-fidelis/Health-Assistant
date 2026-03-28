@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>HealthCare Assistant</title>
+  <link rel="stylesheet" href="style.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+   <link rel="manifest" href="manifest.json"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  <meta name="theme-color" content="#2c7be5"/>
+</head>
+<body>
+    <header>
+        <!-- NAVBAR -->
+        <nav class="navbar">
+            <div class="nav-brand">
+            <i class="fas fa-heartbeat"></i> HealthCare Assistant
+            </div>
+            <ul class="nav-links">
+            <li><a href="#symptoms">Symptoms</a></li>
+            <li><a href="#tools">Health Tools</a></li>
+            <li><a href="#doctors">Find Care</a></li>
+            <li><a href="#appointments">Appointments</a></li>
+            </ul>
+            <div class="nav-actions">
+            <button id="theme-toggle" aria-label="Toggle dark mode">
+                <i class="fas fa-moon"></i>
+            </button>
+            <button id="login-btn" aria-label="Login or logout">Login</button>
+            </div>
+        </nav>
+
+        <!-- TOAST CONTAINER -->
+        <div id="toast-container" aria-live="polite"></div>
+
+    </header>
+    <main>
+        <!-- AUTH SECTION -->
+        <section id="auth-section">
+            <form id="auth-form" aria-label="Authentication form">
+            <h2>Welcome Back</h2>
+            <input id="username" placeholder="Username" required autocomplete="username"/>
+            <input id="password" type="password" placeholder="Password" required autocomplete="current-password"/>
+            <button type="submit">Login / Register</button>
+            </form>
+        </section>
+
+        <!-- EMERGENCY -->
+        <section class="emergency" aria-live="polite"></section>
+
+        <!-- SYMPTOM CHECKER -->
+        <section id="symptoms">
+            <h2><i class="fas fa-stethoscope"></i> Symptom Checker</h2>
+            <div class="input-group">
+            <input id="symptom-input" placeholder="Enter symptom (e.g., fever)" autocomplete="off"/>
+            <div id="suggestions" class="suggestions-box"></div>
+            </div>
+            <div class="btn-group">
+            <button id="add-symptom"><i class="fas fa-plus"></i> Add Symptom</button>
+            <button id="search-symptoms" class="primary"><i class="fas fa-search"></i> Check Disease</button>
+            </div>
+            <ul id="symptom-list" class="symptom-tags"></ul>
+            <div id="results-area" class="results-grid"></div>
+        </section>
+
+        <!-- HEALTH TOOLS -->
+        <section id="tools">
+            <h2><i class="fas fa-calculator"></i> Health Tools</h2>
+            
+            <!-- BMI Calculator with Visual Display -->
+            <div class="tool-card">
+            <h3>BMI Calculator</h3>
+            <div class="bmi-inputs">
+                <input id="weight" type="number" placeholder="Weight (kg)" min="1" max="300"/>
+                <input id="height" type="number" placeholder="Height (cm)" min="50" max="250"/>
+            </div>
+            <button id="calc-bmi" class="primary">Calculate BMI</button>
+            
+            <!-- Interactive BMI Result -->
+            <div id="bmi-result" class="bmi-result hidden">
+                <div class="bmi-value">
+                <span id="bmi-number">--</span>
+                <small id="bmi-category">Enter values</small>
+                </div>
+                <div class="bmi-scale">
+                <div class="scale-bar">
+                    <div class="scale-segment underweight" style="width:25%" title="Underweight: <18.5"></div>
+                    <div class="scale-segment normal" style="width:50%" title="Normal: 18.5-24.9"></div>
+                    <div class="scale-segment overweight" style="width:15%" title="Overweight: 25-29.9"></div>
+                    <div class="scale-segment obese" style="width:10%" title="Obese: ≥30"></div>
+                </div>
+                <div class="scale-labels">
+                    <span>Underweight</span>
+                    <span>Normal</span>
+                    <span>Overweight</span>
+                    <span>Obese</span>
+                </div>
+                <div id="bmi-marker" class="bmi-marker"></div>
+                </div>
+                <p id="bmi-advice" class="bmi-advice"></p>
+            </div>
+            </div>
+        </section>
+
+        <!-- FIND DOCTORS -->
+        <section id="doctors">
+            <h2><i class="fas fa-user-md"></i> Find Doctors / Therapists</h2>
+            
+            <div class="filters">
+            <select id="filter-type">
+                <option value="">All Providers</option>
+                <option value="general">Doctors</option>
+                <option value="mental">Therapists</option>
+                <option value="specialist">Specialists</option>
+            </select>
+            <select id="filter-gender">
+                <option value="">Any Gender</option>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+            </select>
+            <select id="filter-mode">
+                <option value="">Any Mode</option>
+                <option value="physical">In-Person</option>
+                <option value="virtual">Virtual</option>
+            </select>
+            </div>
+
+            <div id="loading-doctors" class="hidden">
+            <i class="fas fa-spinner fa-spin"></i> Loading providers...
+            </div>
+            <div id="results" class="grid"></div>
+        </section>
+
+        <!-- APPOINTMENTS -->
+        <section id="appointments">
+            <h2><i class="fas fa-calendar-check"></i> Your Appointments</h2>
+            <div id="appointments-list" class="appointments-grid"></div>
+            <p id="no-appointments" class="empty-state hidden">No appointments scheduled yet.</p>
+        </section>
+
+        <!-- BOOKING MODAL -->
+        <dialog id="booking-modal">
+            <form id="booking-form">
+            <h3>Book Appointment</h3>
+            <p><strong>Provider:</strong> <span id="modal-provider-name"></span></p>
+            <p><strong>Mode:</strong> <span id="modal-provider-mode"></span></p>
+            <label for="name">Name:</label>
+            <input type="text" required placeholder="Enter your name e.g, Fideljakes">
+            <label for="email">Enail:</label>
+            <input type="email" required placeholder="example@example.com">
+            <label>
+                Date:
+                <input type="date" id="booking-date" required min="${today}"/>
+            </label>
+            <label>
+                Time:
+                <select id="booking-time" required>
+                <option value="09:00">9:00 AM</option>
+                <option value="10:00">10:00 AM</option>
+                <option value="11:00">11:00 AM</option>
+                <option value="14:00">2:00 PM</option>
+                <option value="15:00">3:00 PM</option>
+                <option value="16:00">4:00 PM</option>
+                </select>
+            </label>
+            <label>
+                Notes (optional):
+                <textarea id="booking-notes" rows="3" placeholder="Any symptoms or concerns..."></textarea>
+            </label>
+            
+            <div class="modal-actions">
+                <button type="button" id="cancel-booking">Cancel</button>
+                <button type="submit" class="primary">Confirm Booking</button>
+            </div>
+            </form>
+        </dialog>
+
+        <footer>
+            <h3 id="copyright"> &COPY; All Rights Reserved HealthCare 2026</h3>
+            <div id="contact">
+                <button id="btn" style="border-radius: 8px; background-color: red; color: white; font-weight: bold;font-size: 16px; box-shadow: 0 4px 3px black;">YOUTUBE</button> 
+                <button id="btn" style="border-radius: 8px; background-color: #2c7be5; color: white; font-weight: bold;font-size: 16px; box-shadow: 0 4px 3px black;">LinkedIn</button> 
+                <button id="btn" style="border-radius: 8px; background-color: #2c7be5; color: white; font-weight: bold;font-size: 16px; box-shadow: 0 4px 3px black;">Twitter</button> 
+            </div>
+        </footer>
+  <script src="app.js"></script>
+</body>
+</html>

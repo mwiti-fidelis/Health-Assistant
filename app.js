@@ -519,7 +519,7 @@ function initBookingModal() {
     };
 
     try {
-      // 1. Save to Realtime Database (NOT Firestore!)
+      // 1. Save to Realtime Database
       await DatabaseService.createAppointment(appt);
 
       // 2. Save to LocalStorage
@@ -527,7 +527,7 @@ function initBookingModal() {
       apps.push(appt); 
       localStorage.setItem(CONFIG_APIS.STORAGE.APPOINTMENTS, JSON.stringify(apps)); 
 
-      // 3. Send SMS Notification (NEW FEATURE)
+      // 3. Send SMS Notification
       const phoneOptedIn = smsCheckbox?.checked;
       const phoneNumber = phoneNumberInput?.value.trim();
 
@@ -553,7 +553,7 @@ function initBookingModal() {
           }
         } catch(err) {
           console.warn("SMS skipped (server offline or error):", err);
-          // Don't block booking - continue anyway
+          // Don't block booking
           utils.showToast("Appointment booked (SMS skipped)", "warning", 3000);
         }
       } else {

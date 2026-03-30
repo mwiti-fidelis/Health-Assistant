@@ -32,9 +32,9 @@ const utils = {
   updateThemeIcon(t) { const i = document.querySelector('#theme-toggle i'); if(i) i.className = t === 'light' ? 'fas fa-moon' : 'fas fa-sun'; },
   calculateBMI(w, h) { const hm = h/100; return (w/(hm*hm)).toFixed(1); },
   getBMICategory(bmi) {
-    if(bmi < 18.5) return { cat: 'underweight', color: 'var(--bmi-underweight)', advice: 'Consider consulting a nutritionist.' };
+    if(bmi < 18.5) return { cat: 'underweight', color: 'var(--bmi-underweight)', advice: 'Please consider consulting a nutritionist. You can book an appointment below' };
     if(bmi < 25) return { cat: 'normal', color: 'var(--bmi-normal)', advice: 'Great job! Maintain your healthy lifestyle.' };
-    if(bmi < 30) return { cat: 'overweight', color: 'var(--bmi-overweight)', advice: 'Small lifestyle changes can help.' };
+    if(bmi < 30) return { cat: 'overweight', color: 'var(--bmi-overweight)', advice: 'Small lifestyle changes can help. For more info consider booking an appointment with a healthcare professional.' };
     return { cat: 'obese', color: 'var(--bmi-obese)', advice: 'Please consult a healthcare professional.' };
   },
   getToday() { return new Date().toISOString().split('T')[0]; },
@@ -49,36 +49,113 @@ document.addEventListener("DOMContentLoaded", () => {
   }));
 });
 
-function initAuth() {
-  const form = document.getElementById("auth-form"), btn = document.getElementById("login-btn"), sec = document.getElementById("auth-section");
-  const cur = JSON.parse(localStorage.getItem(CONFIG.STORAGE.USER));
-  if(cur) { state.isLoggedIn = true; state.user = cur.username; if(btn) btn.textContent = `👋 ${state.user}`; if(sec) sec.classList.add('hidden'); }
-  form?.addEventListener("submit", e => {
-    e.preventDefault(); const u = document.getElementById("username").value.trim(), p = document.getElementById("password").value;
-    if(u.length < 3) { utils.showToast("Username must be at least 3 characters", "error"); return; }
-    let users = JSON.parse(localStorage.getItem("users")) || [], ex = users.find(x => x.username === u);
-    if(ex) {
-      if(ex.password === p) { localStorage.setItem(CONFIG.STORAGE.USER, JSON.stringify(ex)); utils.showToast(`Welcome back, ${u}!`, "success"); setTimeout(() => location.reload(), 800); }
-      else utils.showToast("Incorrect password", "error");
+// Adding a firebase login authentication feature.
+async function initAuth() {
+  const form = document.getElementById("auth-form");
+  const btn = document.getElementById("login-btn");
+
+  // Initialize Firebase Auth
+  const auth = firebase.auth();
+
+  // Check if user logged in
+  auth.onAuthStateChanged(user => {
+    if (user) {
+      state.isLoggedIn = true;
+      state.user = user.email.split('@')[0];
+      btn.textContent = `👋 ${state.user}`;
+      document.getElementById("auth-section").classList.add("hidden");
     } else {
-      const nu = { username: u, password: p }; users.push(nu);
-      localStorage.setItem("users", JSON.stringify(users)); localStorage.setItem(CONFIG.STORAGE.USER, JSON.stringify(nu));
-      utils.showToast("Account created!", "success"); setTimeout(() => location.reload(), 800);
+      state.isLoggedIn = false;
+      document.getElementById("auth-section").classList.remove("hidden");
     }
   });
-  btn?.addEventListener("click", () => { if(state.isLoggedIn) { localStorage.removeItem(CONFIG.STORAGE.USER); utils.showToast("Logged out", "info"); setTimeout(() => location.reload(), 500); } });
+
+  form?.addEventListener("submit", e => {
+    e.preventDefault();
+    const email = document.getElementById("username").value.trim();
+    const password = document.getElementById("password").value;
+
+    // Register or Login
+    auth.createUserWithEmailAndPassword(email, password)
+      .then(() => utils.showToast("Account created!", "success"))
+      .catch(err => {
+        if (err.code === 'auth/email-already-in-use') {
+          auth.signInWithEmailAndPassword(email, password)
+            .then(() => utils.showToast("Welcome back!", "success"));
+        } else {
+          utils.showToast(`Error: ${err.message}`, "error");
+        }
+      });
+  });
 }
 
 function initThemeToggle() { document.getElementById('theme-toggle')?.addEventListener('click', () => utils.toggleTheme()); }
-
 async function initEmergency() {
-  const el = document.querySelector(".emergency"); if(!el) return;
+  const el = document.querySelector(".emergency");
+  if (!el) return;
+
+  // Define emergency numbers by country
+  const EMERGENCY_NUMBERS = {
+    MY: { number: "999 / 994", countries: ["Malaysia"] },
+    US: { number: "911", countries: ["United States"] },
+    UK: { number: "999 / 112", countries: ["United Kingdom"] },
+    DEFAULT: { number: "112", countries: ["Global"] }
+  };
+
   try {
-    const r = await fetch("https://ipapi.co/json/"), d = await r.json();
-    const map = { US: "911", MY: "999", UK: "999", DEFAULT: "112" };
-    el.innerHTML = `<div class="card" style="border-left:4px solid var(--error)"><h3><i class="fas fa-ambulance"></i> Emergency</h3><p style="font-size:1.5rem;font-weight:bold;margin:0.5rem 0">📞 ${map[d.country_code]||map.DEFAULT}</p><small>Location: ${d.country_name||'Unknown'}</small></div>`;
-  } catch { el.innerHTML = `<div class="card"><p>🚨 Emergency? Call <strong>112</strong></p></div>`; }
+    // Fetch user's location
+    const response = await fetch("https://ipapi.co/json/");
+    const data = await response.json();
+    
+    const countryCode = data.country_code || "DEFAULT";
+    const countryName = data.country_name || "Unknown";
+    
+    const numObj = EMERGENCY_NUMBERS[countryCode] || EMERGENCY_NUMBERS.DEFAULT;
+    const num = numObj.number;
+    const langs = numObj.countries.join(", ");
+
+    // Display emergency section
+    el.innerHTML = `
+      <div class="card">
+        <h3>🚨 Emergency</h3>
+        <p id="emergency-number"><strong>${num}</strong></p>
+        <small style="color: var(--text-secondary)">
+          ${countryName === "Unknown" ? "Location unavailable" : `Based on: ${countryName}`} 
+          • ${langs}
+        </small>
+        <br>
+        <a href="tel:${num}" id="call-btn" class="btn-call">
+          <i class="fas fa-phone"></i> Call Now
+        </a>
+      </div>
+    `;
+
+    // Add event listener for listening and calling
+    const callBtn = document.getElementById("call-btn");
+    if (callBtn) {
+      callBtn.addEventListener("click", () => {
+        trackEmergencyContact(num);
+        showToast(`Emergency contact: ${num}`, "info", 2000);
+      });
+    }
+
+    // Load recent calls history
+    displayRecentCalls(el);
+
+  } catch (error) {
+    console.error("Emergency info fetch error:", error);
+    el.innerHTML = `
+      <div class="card">
+        <h3>⚠️ Location Unavailable</h3>
+        <p>In emergency? Call <strong>112</strong> (Universal)</p>
+        <a href="tel:112" id="call-btn" class="btn-call">
+          <i class="fas fa-phone"></i> Call 112
+        </a>
+      </div>
+    `;
+  }
 }
+
 
 function initSymptomChecker() {
   const input = document.getElementById("symptom-input"), addBtn = document.getElementById("add-symptom"), searchBtn = document.getElementById("search-symptoms"), list = document.getElementById("symptom-list"), results = document.getElementById("results-area"), suggestions = document.getElementById("suggestions");
@@ -253,3 +330,13 @@ async function registerSW() {
     } catch(e) { console.error('SW failed:', e); }
   }
 }
+
+// Adding an offline notification message to notify the user incase they have no internet or are offline
+window.addEventListener('offline', () => {
+  document.getElementById("offline-warning").style.display = "block";
+});
+
+window.addEventListener('online', () => {
+  document.getElementById("offline-warning").style.display = "none";
+  initEmergency(); // Re-fetch location data
+});

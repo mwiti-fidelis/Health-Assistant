@@ -17,11 +17,13 @@ const utils = {
     c.appendChild(t);
     setTimeout(() => { t.style.animation = 'fadeOut 0.3s ease forwards'; setTimeout(() => t.remove(), 300); }, dur);
   },
+
   initTheme() {
     const s = localStorage.getItem(CONFIG.STORAGE.THEME) || 'light';
     document.documentElement.setAttribute('data-theme', s);
     this.updateThemeIcon(s);
   },
+
   toggleTheme() {
     const c = document.documentElement.getAttribute('data-theme'), n = c === 'light' ? 'dark' : 'light';
     document.documentElement.setAttribute('data-theme', n);
@@ -29,6 +31,7 @@ const utils = {
     this.updateThemeIcon(n);
     this.showToast(`Switched to ${n} mode`, 'success', 2000);
   },
+  
   updateThemeIcon(t) { const i = document.querySelector('#theme-toggle i'); if(i) i.className = t === 'light' ? 'fas fa-moon' : 'fas fa-sun'; },
   calculateBMI(w, h) { const hm = h/100; return (w/(hm*hm)).toFixed(1); },
   getBMICategory(bmi) {
@@ -90,65 +93,73 @@ async function initAuth() {
 }
 
 function initThemeToggle() { document.getElementById('theme-toggle')?.addEventListener('click', () => utils.toggleTheme()); }
+
+// :::::::::::::::::: EMERGENCY:::::::::::::::::::
 async function initEmergency() {
   const el = document.querySelector(".emergency");
   if (!el) return;
 
-  // Define emergency numbers by country
+  // Emergency numbers by country code
   const EMERGENCY_NUMBERS = {
-    MY: { number: "999 / 994", countries: ["Malaysia"] },
-    US: { number: "911", countries: ["United States"] },
-    UK: { number: "999 / 112", countries: ["United Kingdom"] },
-    DEFAULT: { number: "112", countries: ["Global"] }
+    MY: "999 / 994",
+    US: "911",
+    UK: "999 / 112",
+    AU: "000",
+    CA: "911",
+    DEFAULT: "112"
   };
 
   try {
-    // Fetch user's location
+    // Fetch location from IP API
     const response = await fetch("https://ipapi.co/json/");
+    
+    if (!response.ok) throw new Error("Network response failed");
+    
     const data = await response.json();
-    
-    const countryCode = data.country_code || "DEFAULT";
-    const countryName = data.country_name || "Unknown";
-    
-    const numObj = EMERGENCY_NUMBERS[countryCode] || EMERGENCY_NUMBERS.DEFAULT;
-    const num = numObj.number;
-    const langs = numObj.countries.join(", ");
 
-    // Display emergency section
+    // Extract essential information
+    const countryCode = data.country_code?.toUpperCase() || "DEFAULT";
+    const city = data.city || "Unknown";
+    const countryName = data.country_name || "Unknown";
+    const lat = data.latitude || 0;
+    const lng = data.longitude || 0;
+    
+    // Get appropriate emergency number
+    const num = EMERGENCY_NUMBERS[countryCode] || EMERGENCY_NUMBERS.DEFAULT;
+
+    // Create clean HTML output
     el.innerHTML = `
       <div class="card">
-        <h3>🚨 Emergency</h3>
-        <p id="emergency-number"><strong>${num}</strong></p>
+        <h3>🚨 Emergency Contact</h3>
+        <p style="margin-top:0.5rem"><strong>${num}</strong></p>
         <small style="color: var(--text-secondary)">
-          ${countryName === "Unknown" ? "Location unavailable" : `Based on: ${countryName}`} 
-          • ${langs}
+          ${city === "Unknown" ? countryName : `${city}, ${countryName}`}
         </small>
-        <br>
-        <a href="tel:${num}" id="call-btn" class="btn-call">
-          <i class="fas fa-phone"></i> Call Now
+        <br><br>
+        
+        <!-- Emergency Call -->
+        <a href="tel:${num}" style="display:inline-flex; align-items:center; gap:0.5rem; background:#dc2626; color:white; padding:0.75rem 1.5rem; border-radius:8px; text-decoration:none;">
+          <i class="fas fa-phone"></i> Call ${num}
+        </a>
+        
+        <!-- View on Maps -->
+        <a href="https://www.google.com/maps?q=${lat},${lng}" 
+           target="_blank" rel="noopener noreferrer"
+           style="display:inline-flex; align-items:center; gap:0.5rem; background:var(--accent); color:white; padding:0.75rem 1.5rem; border-radius:8px; text-decoration:none; margin-left:0.5rem;">
+          <i class="fas fa-map"></i> Location
         </a>
       </div>
     `;
 
-    // Add event listener for listening and calling
-    const callBtn = document.getElementById("call-btn");
-    if (callBtn) {
-      callBtn.addEventListener("click", () => {
-        trackEmergencyContact(num);
-        showToast(`Emergency contact: ${num}`, "info", 2000);
-      });
-    }
-
-    // Load recent calls history
-    displayRecentCalls(el);
-
   } catch (error) {
-    console.error("Emergency info fetch error:", error);
+    console.error("Emergency info error:", error);
+    
+    // Fallback message
     el.innerHTML = `
-      <div class="card">
+      <div class="card" style="border-left: 4px solid var(--warning)">
         <h3>⚠️ Location Unavailable</h3>
         <p>In emergency? Call <strong>112</strong> (Universal)</p>
-        <a href="tel:112" id="call-btn" class="btn-call">
+        <a href="tel:112" style="display:inline-block; background:var(--accent); color:white; padding:0.75rem 1.5rem; border-radius:8px; text-decoration:none; margin-top:0.5rem;">
           <i class="fas fa-phone"></i> Call 112
         </a>
       </div>
@@ -156,6 +167,7 @@ async function initEmergency() {
   }
 }
 
+// :::::::::::::Symptoms Checker:::::::::::::::::::::::::::::::
 
 function initSymptomChecker() {
   const input = document.getElementById("symptom-input"), addBtn = document.getElementById("add-symptom"), searchBtn = document.getElementById("search-symptoms"), list = document.getElementById("symptom-list"), results = document.getElementById("results-area"), suggestions = document.getElementById("suggestions");
@@ -209,6 +221,7 @@ function initHealthTools() {
   });
 }
 
+// :::::::::::::::::Doctor's and Therapists Display:::::::::::::::::::: 
 const doctorsData = [{ id:1, name:"Dr. Sarah Lee", type:"general", gender:"female", specialty:"Family Medicine", hospital:"Penang General Hospital", mode:"physical", time:"9am-1pm", rating:4.8 }, { id:2, name:"Dr. John Smith", type:"general", gender:"male", specialty:"Internal Medicine", hospital:"Island Hospital", mode:"physical", time:"2pm-6pm", rating:4.6 }, { id:3, name:"Dr. Aisha Khan", type:"mental", gender:"female", specialty:"Clinical Psychologist", hospital:"MindCare Online", mode:"virtual", time:"10am-4pm", rating:4.9 }];
 
 function displayDoctors(f = {}) {
@@ -263,6 +276,7 @@ function renderProviders(providers) {
   });
 }
 
+// :::::::::::::::::::Appointments::::::::::::::::::::
 function displayAppointments() {
   const c = document.getElementById("appointments-list"), empty = document.getElementById("no-appointments"); if(!c) return;
   const apps = JSON.parse(localStorage.getItem(CONFIG.STORAGE.APPOINTMENTS)) || []; c.innerHTML = "";
@@ -275,6 +289,7 @@ function displayAppointments() {
   });
 }
 
+// :::::::::::::::::::Booking::::::::::::::::::::::::
 function initBookingModal() {
   const modal = document.getElementById("booking-modal"), form = document.getElementById("booking-form"), cancel = document.getElementById("cancel-booking"), dateInp = document.getElementById("booking-date");
   if(dateInp) dateInp.min = utils.getToday();

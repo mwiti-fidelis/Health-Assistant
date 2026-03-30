@@ -112,6 +112,93 @@ body {
   color: white;
 }
 
+/* Emergency Section */
+.emergency .card {
+  background: linear-gradient(135deg, #e94f4f 0%, #de8585 100%);
+  border: none;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15);
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.emergency .card h3,
+.emergency .card p,
+.emergency .card small {
+  color: var(--text-primary);
+}
+
+/* Local Time Display */
+#local-time {
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: var(--accent);
+  margin: 0.5rem 0;
+}
+
+/* Button Layout */
+.emergency .card > div:last-child {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+}
+
+.btn-call {
+  background: #dc2626;
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: transform 0.2s, background 0.2s;
+}
+
+.btn-call:hover {
+  background: #b91c1c;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.btn-share {
+  background: var(--accent);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: transform 0.2s, background 0.2s;
+}
+
+.btn-share:hover {
+  background: #1d4ed8;
+  transform: translateY(-2px);
+}
+
+.recent-calls-history ul {
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .emergency .card > div:last-child {
+    flex-direction: column;
+  }
+  
+  .btn-call, .btn-share, .btn-map {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+
 /* ===== BUTTONS ===== */
 button {
   padding: 0.6rem 1.2rem;

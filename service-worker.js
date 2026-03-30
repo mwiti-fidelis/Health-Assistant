@@ -1,17 +1,140 @@
-const CACHE = 'healthcare-v1', OFFLINE = '/offline.html', ASSETS = ['/', '/index.html', '/style.css', '/app.js', '/firebase-config.js', '/manifest.json', 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css'];
+// sw.js - Service Worker for PWA Offline Support
+const CACHE_NAME = 'healthcare-v1';
+const OFFLINE_URL = '/offline.html';
 
-self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS))); self.skipWaiting(); });
-self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(names => Promise.all(names.filter(n => n !== CACHE).map(n => caches.delete(n))))); self.clients.claim(); });
-self.addEventListener('fetch', e => {
-  if(e.request.method !== 'GET') return;
-  e.respondWith(fetch(e.request).then(r => { if(r.status === 200) caches.open(CACHE).then(c => c.put(e.request, r.clone())); return r; }).catch(() => caches.match(e.request).then(cr => cr || (e.request.mode === 'navigate' ? caches.match(OFFLINE) : new Response('Offline', { status: 503 })))));
+const ASSETS_TO_CACHE = [
+  '/',
+  '/index.html',
+  '/style.css',
+  '/app.js',
+  '/firebase-config.js',
+  '/manifest.json',
+  'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
+  'https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js',
+  'https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js'
+];
+
+// Install event - cache assets
+self.addEventListener('install', (event) => {
+  console.log('🔧 Installing SW...');
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then((cache) => {
+        console.log('Caching assets');
+        return cache.addAll(ASSETS_TO_CACHE);
+      })
+      .then(() => self.skipWaiting())
+  );
 });
-self.addEventListener('push', e => { const d = e.data?.json()||{}; e.waitUntil(self.registration.showNotification(d.title||'HealthCare App', { body: d.body||'New notification', icon: '/icon-192x192.png', data: d.url||'/' })); });
-self.addEventListener('notificationclick', e => { e.notification.close(); if(!e.action || e.action === 'open') e.waitUntil(clients.openWindow(e.notification.data)); });
-self.addEventListener('sync', e => { if(e.tag === 'sync-appointments') e.waitUntil(syncAppts()); });
 
-async function syncAppts() {
-  const local = JSON.parse(localStorage.getItem('hc_appointments')||'[]'), unsynced = local.filter(a => !a.synced);
-  for(const a of unsynced) { try { await fetch('/api/appointments', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(a) }); a.synced = true; } catch(e) { console.error('Sync failed:', e); } }
-  localStorage.setItem('hc_appointments', JSON.stringify(local));
+// Activate event - clean old caches
+self.addEventListener('activate', (event) => {
+  console.log('✅ Activating SW...');
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.filter((name) => name !== CACHE_NAME)
+          .map((name) => {
+            console.log('Deleting old cache:', name);
+            return caches.delete(name);
+          })
+      );
+    }).then(() => self.clients.claim())
+  );
+});
+
+// Fetch event - network first, fallback to cache
+self.addEventListener('fetch', (event) => {
+  // Skip non-GET requests
+  if (event.request.method !== 'GET') return;
+
+  event.respondWith(
+    fetch(event.request)
+      .then((response) => {
+        // Clone response for cache
+        const responseClone = response.clone();
+        
+        // Cache successful responses
+        if (response.status === 200) {
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseClone);
+          });
+        }
+        
+        return response;
+      })
+      .catch(() => {
+        // Network failed - try cache
+        return caches.match(event.request).then((cachedResponse) => {
+          if (cachedResponse) {
+            return cachedResponse;
+          }
+          
+          // Show offline page for navigation requests
+          if (event.request.mode === 'navigate') {
+            return caches.match(OFFLINE_URL) || new Response('Offline', { status: 503 });
+          }
+          
+          return new Response('Offline', { status: 503 });
+        });
+      })
+  );
+});
+
+// Push notifications
+self.addEventListener('push', (event) => {
+  const data = event.data?.json() || {};
+  
+  const options = {
+    body: data.body || 'You have a new notification',
+    icon: '/icon-192x192.png',
+    badge: '/icon-192x192.png',
+    vibrate: [200, 100, 200],
+    data: data.url || '/',
+    actions: [
+      { action: 'open', title: 'Open App' },
+      { action: 'close', title: 'Close' }
+    ]
+  };
+  
+  event.waitUntil(
+    self.registration.showNotification(data.title || 'HealthCare App', options)
+  );
+});
+
+// Notification click handler
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  
+  if (event.action === 'open' || !event.action) {
+    event.waitUntil(clients.openWindow(event.notification.data));
+  }
+});
+
+// Background sync for offline appointments
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'sync-appointments') {
+    console.log('Syncing appointments...');
+    event.waitUntil(syncAppointments());
+  }
+});
+
+async function syncAppointments() {
+  const localAppointments = JSON.parse(localStorage.getItem('hc_appointments') || '[]');
+  const unsynced = localAppointments.filter(app => !app.synced);
+  
+  for (const appointment of unsynced) {
+    try {
+      await fetch('/api/appointments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(appointment)
+      });
+      
+      appointment.synced = true;
+      localStorage.setItem('hc_appointments', JSON.stringify(localAppointments));
+    } catch (error) {
+      console.error('Sync failed:', error);
+    }
+  }
 }

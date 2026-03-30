@@ -31,7 +31,7 @@ const utils = {
     this.updateThemeIcon(n);
     this.showToast(`Switched to ${n} mode`, 'success', 2000);
   },
-  
+
   updateThemeIcon(t) { const i = document.querySelector('#theme-toggle i'); if(i) i.className = t === 'light' ? 'fas fa-moon' : 'fas fa-sun'; },
   calculateBMI(w, h) { const hm = h/100; return (w/(hm*hm)).toFixed(1); },
   getBMICategory(bmi) {
@@ -45,8 +45,18 @@ const utils = {
 };
 
 document.addEventListener("DOMContentLoaded", () => {
-  utils.initTheme(); initAuth(); initThemeToggle(); initEmergency(); initSymptomChecker();
-  initHealthTools(); initFilters(); initProviderSearch(); displayAppointments(); initBookingModal(); registerSW();
+  utils.initTheme(); 
+  initAuth(); 
+  initThemeToggle(); 
+  initEmergency(); 
+  initSymptomChecker();
+  initHealthTools(); 
+  initFilters(); 
+  initProviderSearch(); 
+  displayAppointments(); 
+  initBookingModal(); 
+  registerSW();
+  initOffline();
   document.querySelectorAll('.nav-links a').forEach(l => l.addEventListener('click', e => {
     e.preventDefault(); const t = document.querySelector(l.getAttribute('href')); if(t) t.scrollIntoView({ behavior: 'smooth' });
   }));
@@ -347,11 +357,18 @@ async function registerSW() {
 }
 
 // Adding an offline notification message to notify the user incase they have no internet or are offline
-window.addEventListener('offline', () => {
-  document.getElementById("offline-warning").style.display = "block";
-});
+function initOffline() {
+  const offlineBanner = document.getElementById("offline-warning");
+  
+  window.addEventListener('offline', () => {
+    if(offlineBanner) offlineBanner.classList.remove("hidden");
+  });
 
-window.addEventListener('online', () => {
-  document.getElementById("offline-warning").style.display = "none";
-  initEmergency(); // Re-fetch location data
-});
+  window.addEventListener('online', () => {
+    if(offlineBanner) offlineBanner.classList.add("hidden");
+    // Re-fetch location data after connection restored
+    if(typeof initEmergency === 'function') {
+      initEmergency();
+    }
+  });
+}

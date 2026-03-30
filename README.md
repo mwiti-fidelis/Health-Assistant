@@ -15,10 +15,10 @@ A modern healthcare web application providing symptom checking, doctor discovery
   # Core Functionality
      ✅  Symptom Checker  - with disease diagnosis and suggestions depending on the symptoms
      ✅  Doctor Discovery  - via filtered search and a live regex search tool
-     ✅  Emergency Contacts   - based on real time geolocation using IPAPI with an implemented live location feature through incorporation of google maps to triangulate the location based on the latitute and longitude provided by the IPAPI on users location
+     ✅  Emergency Contacts   - based on real-time geolocation using IPAPI with an implemented live location feature through the incorporation of Google Maps to triangulate the location based on the latitude and longitude provided by the IPAPI on users location
      ✅  BMI Calculator  - with visual feedback
      ✅  Appointment Booking  - with Google Calendar sync and notifications tool powered by Twilio API
-     ✅  User Authentication   - LocalStorage based for security. Uprgrades are being done using firebase api
+     ✅  User Authentication   - LocalStorage-based for security. Upgrades are being done using firebase api
      ✅  Dark/Light Mode Toggle for interactive and accessible screens
      ✅  Offline Support  (Service Worker + PWA)
      ✅  Toast Notifications  for user feedback
@@ -36,12 +36,12 @@ A modern healthcare web application providing symptom checking, doctor discovery
      ✅ Load Balancer: HAProxy configured on Lb01
      ✅ Web Servers:    Nginx on Web01 and Web02
      ✅ Database: Firebase Realtime Database and/or LocalStorage fallback
-     ✅ Authentication: Session    based using LocalStorage
+     ✅ Authentication: Session-based using LocalStorage
 
   # Credentials security features
     .env file
     .gitignore file
-    firebase free api for authentication and firebase realtime Database
+    Firebase free api for authentication and Firebase Realtime Database
 
  #  Live demo
     https://www.loom.com/share/8e04789e37774de4ae69749a30e556b5

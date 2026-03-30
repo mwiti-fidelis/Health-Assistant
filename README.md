@@ -43,6 +43,9 @@ A modern healthcare web application providing symptom checking, doctor discovery
     .gitignore file
     firebase free api for authentication and firebase realtime Database
 
+ #  Live demo
+    https://www.loom.com/share/8e04789e37774de4ae69749a30e556b5
+
   # 🛠️ Installation & Setup
 
   # Prerequisites
@@ -61,3 +64,5 @@ cd Health-Assistant
 npm install -g serve
 npx serve
 serve .
+
+

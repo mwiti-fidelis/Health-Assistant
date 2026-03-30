@@ -155,7 +155,7 @@ async function initEmergency() {
         <!-- View on Maps -->
         <a href="https://www.google.com/maps?q=${lat},${lng}" 
            target="_blank" rel="noopener noreferrer"
-           style="display:inline-flex; align-items:center; gap:0.5rem; background:var(--accent); color:white; padding:0.75rem 1.5rem; border-radius:8px; text-decoration:none; margin-left:0.5rem;">
+           style="display:inline-flex; align-items:center; gap:0.5rem; background:var(--success); color:white; padding:0.75rem 1.5rem; border-radius:8px; text-decoration:none; margin-left:0.5rem;">
           <i class="fas fa-map"></i> Location
         </a>
       </div>

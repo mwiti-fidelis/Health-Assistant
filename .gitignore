@@ -1,0 +1,47 @@
+#Secret files and creditials that should never be displayed in the website
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+secrets/
+credintials/
+
+# Node dependecies
+node_modules/
+package_lock.json
+mpd_debug.log*
+yarn_debug.log*
+yarn_error.log*
+
+#Build outputs
+dist/
+build/
+out/
+
+#IDE & edit files generated
+*.swp
+*.swo
+.vscode/
+*~
+.DS_Store
+Thumbs.db
+
+#logs
+logs/
+*.log
+
+# Temporary and cache files
+.temp/
+temp/
+.cache/
+
+# Docker files
+.docker-compose/
+Dockerfile*
+ldockerfile*
+
+#Deployement scripts
+deploy/
+*.sh.bak
+desktop.ini

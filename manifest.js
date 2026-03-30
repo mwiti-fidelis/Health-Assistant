@@ -1,7 +1,7 @@
 {
   "name": "HealthCare Assistant",
   "short_name": "HealthCare",
-  "description": "Your personal healthcare companion",
+  "description": "Your listening, caring health partner",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f5f7fa",

@@ -9,7 +9,8 @@ credintials/
 
 # Node dependecies
 node_modules/
-package_lock.json
+package-lock.json
+package.json
 mpd_debug.log*
 yarn_debug.log*
 yarn_error.log*

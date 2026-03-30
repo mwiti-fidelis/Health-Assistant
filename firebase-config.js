@@ -1,36 +1,95 @@
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+// Using Firebase Realtime Database (Free Tier)
+// Firebase Configuration
 const FIREBASE_CONFIG = {
-    apiKey: process.env.FIREBASE_API_KEY || 'YOUR_FIREBASE_API_KEY_HERE',
-    authDomain: process.env.FIREBASE_AUTH_DOMAIN || 'YOUR_PROJECT.firebaseapp.com',
-    projectId: process.env.FIREBASE_PROJECT_ID || 'YOUR_PROJECT_ID',
-    storageBucket: process.env.FIREBASE_STORAGE_BUCKET || 'YOUR_PROJECT.appspot.com',
-    messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID || 'YOUR_SENDER_ID',
-    appId: process.env.FIREBASE_APP_ID || 'YOUR_APP_ID',
-    measurementId: process.env.FIREBASE_MEASUREMENT_ID || 'YOUR_MEASUREMENT_ID'
+    apiKey: "AIzaSyALbQTWNpS3LLfQUEV16plTkATr_zEDYI",
+    authDomain: "healthcare-assistant-5f70b.firebasapp.com",
+    projectId: "healthcare-assistant-5f70b",
+    storageBucket: "healthcare-assistant-5f70b.appspot.com",
+    messagingSenderId: "221261599350",
+    appId: "1:221261599350:web:d124371400ddecdb004557",
+    measurementId: "G-XMD9PD35JB"
 };
 
+// Initialize Firebase
 firebase.initializeApp(FIREBASE_CONFIG);
-const db = firebase.firestore();
-//  The rest of FirestoreService functions
 
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
+// Use Realtime Database (NOT Firestore)
+const db = firebase.database();
 
-const FirestoreService = {
-  async createAppointment(data) {
-    const docRef = await db.collection("appointments").add({
-      ...data, createdAt: firebase.firestore.FieldValue.serverTimestamp(), status: "pending"
-    });
-    return docRef.id;
-  },
-  async getUserAppointments(userId) {
-    const snapshot = await db.collection("appointments")
-      .where("userId", "==", userId).orderBy("datetime", "desc").get();
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-  },
-  async updateStatus(id, status) {
-    await db.collection("appointments").doc(id).update({
-      status, updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-  }
+// Realtime Database Service Functions
+const DatabaseService = {
+    // Create appointment
+    async createAppointment(appointmentData) {
+        try {
+            const newRef = db.ref('appointments').push();
+            await newRef.set({
+                ...appointmentData,
+                createdAt: firebase.database.ServerValue.TIMESTAMP,
+                status: "pending"
+            });
+            return newRef.key;
+        } catch (error) {
+            console.error("Database Error:", error);
+            throw error;
+        }
+    },
+
+    // Get all appointments
+    async getAllAppointments() {
+        try {
+            const snapshot = await db.ref('appointments').get();
+            return snapshot.val() || {};
+        } catch (error) {
+            console.error("Database Error:", error);
+            throw error;
+        }
+    },
+
+    // Get specific appointment
+    async getAppointment(id) {
+        try {
+            const snapshot = await db.ref(`appointments/${id}`).get();
+            return snapshot.val();
+        } catch (error) {
+            console.error("Database Error:", error);
+            throw error;
+        }
+    },
+
+    // Update appointment
+    async updateAppointment(id, updates) {
+        try {
+            await db.ref(`appointments/${id}`).update(updates);
+        } catch (error) {
+            console.error("Database Error:", error);
+            throw error;
+        }
+    },
+
+    // Delete appointment
+    async deleteAppointment(id) {
+        try {
+            await db.ref(`appointments/${id}`).remove();
+        } catch (error) {
+            console.error("Database Error:", error);
+            throw error;
+        }
+    },
+
+    // Check if user exists
+    async checkUser(email) {
+        try {
+            const snapshot = await db.ref('users').orderByChild('email').equalTo(email).get();
+            return !!(snapshot.val() && Object.keys(snapshot.val()).length > 0);
+        } catch (error) {
+            console.error("Database Error:", error);
+            throw error;
+        }
+    }
 };
+
+// Make globals accessible
+window.db = db;
+window.DatabaseService = DatabaseService;
+
+console.log("✅ Firebase Realtime Database initialized");

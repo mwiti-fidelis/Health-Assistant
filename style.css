@@ -112,6 +112,67 @@ body {
   color: white;
 }
 
+/* Auth Section Container */
+.auth-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 60vh; /* Takes up most of screen */
+  padding: 1rem;
+}
+
+/* Auth Card Styling */
+.auth-card {
+  background: var(--bg-secondary);
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+}
+
+.auth-card h2 {
+  margin-bottom: 1.5rem;
+  color: var(--text-primary);
+}
+
+/* Button Layout */
+.auth-buttons {
+  display: flex;
+  flex-direction: column; 
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.auth-buttons button {
+  padding: 0.8rem;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+  transition: opacity 0.2s;
+}
+
+#login-btn {
+  background: #2c7be5; 
+  color: white;
+}
+
+#register-btn {
+  background: #38a169; 
+  color: white;
+}
+
+#login-btn:hover, #register-btn:hover {
+  opacity: 0.9;
+}
+
+/* Hide Auth Section when user is logged in */
+.hidden {
+  display: none !important;
+}
+
 /* Emergency Section */
 .emergency .card {
   background: var(--accent);

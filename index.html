@@ -36,13 +36,23 @@
     </header>
     <main>
         <!-- AUTH SECTION -->
-        <section id="auth-section">
-            <form id="auth-form" aria-label="Authentication form">
-            <h2>Welcome Back</h2>
-            <input id="username" placeholder="Username" required autocomplete="username"/>
-            <input id="password" type="password" placeholder="Password" required autocomplete="current-password"/>
-            <button type="submit">Login / Register</button>
-            </form>
+        <section id="auth-section" class="auth-container">
+            <div class="auth-card">
+                <h2>Welcome Back</h2>
+                
+                <!-- Form Inputs -->
+                <input id="username" placeholder="Email Address" type="email" required autocomplete="username"/>
+                <input id="password" type="password" placeholder="Password" required autocomplete="current-password"/>
+                
+                <!-- login and register Buttons -->
+                <div class="auth-buttons">
+                    <button type="button" id="login-btn"> Log In</button>
+                    <button type="button" id="register-btn"> Create Account</button>
+                </div>
+                
+                <!-- Message Area (for errors/success) -->
+                <p id="auth-message" style="margin-top: 1rem; color: var(--text-secondary); font-size: 0.9rem;"></p>
+            </div>
         </section>
 
         <!-- EMERGENCY -->
@@ -141,37 +151,49 @@
         <!-- BOOKING MODAL -->
         <dialog id="booking-modal">
             <form id="booking-form">
-            <h3>Book Appointment</h3>
-            <p><strong>Provider:</strong> <span id="modal-provider-name"></span></p>
-            <p><strong>Mode:</strong> <span id="modal-provider-mode"></span></p>
-            <label for="name">Name:</label>
-            <input type="text" required placeholder="Enter your name e.g, Fidelis">
-            <label for="email">Email:</label>
-            <input type="email" required placeholder="example@example.com">
-            <label>
-                Date:
-                <input type="date" id="booking-date" required min="${today}"/>
-            </label>
-            <label>
-                Time:
-                <select id="booking-time" required>
-                <option value="09:00">9:00 AM</option>
-                <option value="10:00">10:00 AM</option>
-                <option value="11:00">11:00 AM</option>
-                <option value="14:00">2:00 PM</option>
-                <option value="15:00">3:00 PM</option>
-                <option value="16:00">4:00 PM</option>
-                </select>
-            </label>
-            <label>
-                Notes (optional):
-                <textarea id="booking-notes" rows="3" placeholder="Any symptoms or concerns..."></textarea>
-            </label>
-            
-            <div class="modal-actions">
-                <button type="button" id="cancel-booking">Cancel</button>
-                <button type="submit" class="primary">Confirm Booking</button>
-            </div>
+                <h3>Book Appointment</h3>
+                <p><strong>Provider:</strong> <span id="modal-provider-name"></span></p>
+                <p><strong>Mode:</strong> <span id="modal-provider-mode"></span></p>
+                <label for="name">Name:</label>
+                <input type="text" required placeholder="Enter your name e.g, Fidelis">
+                <label for="email">Email:</label>
+                <input type="email" required placeholder="example@example.com">
+                <label>
+                    Date:
+                    <input type="date" id="booking-date" required min="${today}"/>
+                </label>
+                <label>
+                    Time:
+                    <select id="booking-time" required>
+                    <option value="09:00">9:00 AM</option>
+                    <option value="10:00">10:00 AM</option>
+                    <option value="11:00">11:00 AM</option>
+                    <option value="14:00">2:00 PM</option>
+                    <option value="15:00">3:00 PM</option>
+                    <option value="16:00">4:00 PM</option>
+                    </select>
+                </label>
+                <label>
+                    Notes (optional):
+                    <textarea id="booking-notes" rows="3" placeholder="Any symptoms or concerns..."></textarea>
+                </label>
+                <!-- SMS section -->
+                <label style="margin-top: 1rem;">
+                <input type="checkbox" id="sms-notifications" />
+                <span>Receive SMS reminder?</span>
+                </label>
+
+                <div id="sms-phone-section" class="hidden" style="margin-top:1rem; padding:0.5rem; background:rgba(0,0,0,0.05); border-radius:8px;">
+                <label>
+                    <strong>Mobile Number:</strong><br>
+                    <input id="phone-number" type="tel" placeholder="+1234567890" required />
+                </label>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" id="cancel-booking">Cancel</button>
+                    <button type="submit" class="primary">Confirm Booking</button>
+                </div>
             </form>
         </dialog>
 
@@ -190,7 +212,8 @@
     <script src="app.js"></script>
     <!-- Firebase SDK config -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
     <!-- Config loads after SDK -->
     <script src="firebase-config.js"></script>

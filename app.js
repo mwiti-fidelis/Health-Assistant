@@ -62,44 +62,142 @@ document.addEventListener("DOMContentLoaded", () => {
   }));
 });
 
-// Adding a firebase login authentication feature.
+// ::::::::::::::::::::Firebase login authentication:::::::::::::::::::
 async function initAuth() {
   const form = document.getElementById("auth-form");
-  const btn = document.getElementById("login-btn");
+  const usernameInput = document.getElementById("username");
+  const passwordInput = document.getElementById("password");
+  const msgElement = document.getElementById("auth-message");
+  const authSection = document.getElementById("auth-section");
+  
+  // Get buttons
+  const loginBtn = document.getElementById("login-btn");
+  const registerBtn = document.getElementById("register-btn");
 
-  // Initialize Firebase Auth
+  // Debugging
+  console.log('🔍 Initializing Firebase Auth...');
+
+  // Check if User is Already Logged In
   const auth = firebase.auth();
-
-  // Check if user logged in
+  
   auth.onAuthStateChanged(user => {
+    console.log('👤 Auth State Change:', user ? 'Logged In' : 'Logged Out');
+
     if (user) {
+      // Check if user is logged in
       state.isLoggedIn = true;
       state.user = user.email.split('@')[0];
-      btn.textContent = `👋 ${state.user}`;
-      document.getElementById("auth-section").classList.add("hidden");
+      
+      // Clear inputs
+      usernameInput.value = '';
+      passwordInput.value = '';
+      if(msgElement) msgElement.textContent = '';
+      
+      // Hide login screen!
+      if(authSection) authSection.classList.add("hidden");
+      loadUserAppointments(user.uid); 
+      
+      utils.showToast(`Welcome back, ${state.user}!`, "success", 3000);
+      
+      // Reload appointments for this user
+      loadUserAppointments(user.uid); 
+      
     } else {
+      // User is logged out -> Show Auth Section
       state.isLoggedIn = false;
-      document.getElementById("auth-section").classList.remove("hidden");
+      state.user = null;
+      
+      if(authSection) authSection.classList.remove("hidden");
     }
   });
 
-  form?.addEventListener("submit", e => {
-    e.preventDefault();
-    const email = document.getElementById("username").value.trim();
-    const password = document.getElementById("password").value;
+  // .............LOGIN FUNCTIONALITY..........
+  loginBtn.addEventListener("click", () => {
+    const email = usernameInput.value.trim();
+    const password = passwordInput.value;
 
-    // Register or Login
-    auth.createUserWithEmailAndPassword(email, password)
-      .then(() => utils.showToast("Account created!", "success"))
-      .catch(err => {
-        if (err.code === 'auth/email-already-in-use') {
-          auth.signInWithEmailAndPassword(email, password)
-            .then(() => utils.showToast("Welcome back!", "success"));
-        } else {
-          utils.showToast(`Error: ${err.message}`, "error");
-        }
+    if (!email || !password) {
+      showMessage("Please enter email and password", "error");
+      return;
+    }
+
+    showMessage("Logging in...", "info");
+    
+    auth.signInWithEmailAndPassword(email, password)
+      .then(() => {
+        // Success: Auth.onAuthStateChanged handles hiding the form
+      })
+      .catch(error => {
+        let errorMsg = error.message;
+        if (error.code === 'auth/wrong-password') errorMsg = "Incorrect password";
+        if (error.code === 'auth/user-not-found') errorMsg = "No account found for this email";
+        
+        showMessage(errorMsg, "error");
       });
   });
+
+  // ............. REGISTER FUNCTIONALITY ............
+  registerBtn.addEventListener("click", () => {
+    const email = usernameInput.value.trim();
+    const password = passwordInput.value;
+
+    if (password.length < 6) {
+      showMessage("Password must be at least 6 characters long", "error");
+      return;
+    }
+
+    showMessage("Creating account...", "info");
+
+    auth.createUserWithEmailAndPassword(email, password)
+      .then((cred) => {
+        // Save basic user info to firebase Realtime Database
+        return db.ref('users/' + cred.user.uid).set({
+          email: email,
+          uid: cred.user.uid,
+          createdAt: firebase.database.ServerValue.TIMESTAMP
+        });
+      })
+      .then(() => {
+        // Success: Auth.onAuthStateChanged handles hiding the form
+        showMessage("Account created successfully!", "success");
+      })
+      .catch(error => {
+        let errorMsg = error.message;
+        if (error.code === 'auth/email-already-in-use') errorMsg = "Email already registered";
+        if (error.code === 'auth/weak-password') errorMsg = "Password too weak (min 6 chars)";
+        
+        showMessage(errorMsg, "error");
+      });
+  });
+
+  // Helper function to show messages
+  function showMessage(text, type) {
+    if(msgElement) msgElement.textContent = text;
+    if(type === "error") msgElement.style.color = "var(--error)";
+    if(type === "success") msgElement.style.color = "var(--success)";
+    if(type === "info") msgElement.style.color = "var(--accent)";
+    
+    // Clear message after 5 seconds
+    setTimeout(() => { if(msgElement) msgElement.textContent = ''; }, 5000);
+  }
+}
+
+// Load appointments from Realtime Database for current user
+async function loadUserAppointments(userId) {
+  try {
+    const snapshot = await db.ref('appointments').orderByChild('userId').equalTo(userId).get();
+    const appointments = {};
+    snapshot.forEach(child => {
+      appointments[child.key] = child.val();
+    });
+    
+    // Clear local storage to sync with DB
+    localStorage.setItem(CONFIG.STORAGE.APPOINTMENTS, JSON.stringify(Object.values(appointments)));
+    
+    displayAppointments();
+  } catch (error) {
+    console.error("Error loading appointments:", error);
+  }
 }
 
 function initThemeToggle() { document.getElementById('theme-toggle')?.addEventListener('click', () => utils.toggleTheme()); }
@@ -288,57 +386,227 @@ function renderProviders(providers) {
 
 // :::::::::::::::::::Appointments::::::::::::::::::::
 function displayAppointments() {
-  const c = document.getElementById("appointments-list"), empty = document.getElementById("no-appointments"); if(!c) return;
-  const apps = JSON.parse(localStorage.getItem(CONFIG.STORAGE.APPOINTMENTS)) || []; c.innerHTML = "";
-  if(apps.length === 0) { empty?.classList.remove("hidden"); return; } empty?.classList.add("hidden");
-  apps.sort((a,b) => new Date(a.datetime) - new Date(b.datetime));
-  apps.forEach((a, idx) => {
-    const card = document.createElement("div"); card.className = "card"; card.style.borderLeft = `4px solid ${a.status==='confirmed'?'var(--success)':'var(--warning)'}`;
-    card.innerHTML = `<div style="display:flex;justify-content:space-between"><h3>${a.providerName}</h3><small style="background:${a.status==='confirmed'?'var(--success)':'var(--warning)'};color:white;padding:0.2rem 0.5rem;border-radius:12px">${a.status}</small></div><p><i class="fas fa-calendar-day"></i> ${utils.formatDT(a.date, a.time)}</p><p><i class="fas fa-${a.mode==='virtual'?'video':'map-marker-alt'}"></i> ${a.mode==='virtual'?'Virtual':a.hospital||'Clinic'}</p>${a.notes?`<p><i class="fas fa-sticky-note"></i> <em>${a.notes}</em></p>`:''}<div style="display:flex;gap:0.5rem;margin-top:1rem"><button onclick="addToCalendar('${a.providerName}','${a.date}','${a.time}')" style="flex:1"><i class="fab fa-google"></i> Calendar</button><button onclick="cancelAppointment(${idx})" style="flex:1;background:var(--error)"><i class="fas fa-times"></i> Cancel</button></div>`;
-    c.appendChild(card);
-  });
+  const c = document.getElementById("appointments-list"), empty = document.getElementById("no-appointments");
+  if(!c) return;
+
+  // Load from Firebase Realtime Database
+  DatabaseService.getAllAppointments()
+    .then(allApps => {
+      let apps = [];
+      // Convert object to array if needed
+      for (let key in allApps) {
+        allApps[key].id = key;
+        apps.push(allApps[key]);
+      }
+      apps.sort((a,b) => new Date(a.datetime) - new Date(b.datetime));
+
+      c.innerHTML = "";
+
+      if(apps.length === 0) {
+        empty?.classList.remove("hidden");
+        return;
+      }
+      empty?.classList.add("hidden");
+
+      apps.forEach((a, idx) => {
+        const card = document.createElement("div");
+        card.className = "card";
+        card.style.borderLeft = `${a.status==='confirmed'?'var(--success)':'var(--warning)'}`;
+
+        card.innerHTML = `
+          <div style="display:flex;justify-content:space-between">
+            <h3>${a.providerName}</h3>
+            <small style="background:${a.status==='confirmed'?'var(--success)':'var(--warning)'};color:white;padding:0.2rem 0.5rem;border-radius:12px">${a.status}</small>
+          </div>
+          <p><i class="fas fa-calendar-day"></i> ${utils.formatDT(a.date, a.time)}</p>
+          <p><i class="fas fa-${a.mode==='virtual'?'video':'map-marker-alt'}"></i> ${a.mode==='virtual'?'Virtual':a.hospital||'Clinic'}</p>
+          ${a.notes?`<p><i class="fas fa-sticky-note"></i> <em>${a.notes}</em></p>`:''}
+          <div style="display:flex;gap:0.5rem;margin-top:1rem">
+            <button onclick="addToCalendar('${a.providerName}','${a.date}','${a.time}')" style="flex:1"><i class="fab fa-google"></i> Calendar</button>
+            <button onclick="cancelAppointment(${idx})" style="flex:1;background:var(--error)"><i class="fas fa-times"></i> Cancel</button>
+          </div>
+        `;
+        c.appendChild(card);
+      });
+    })
+    .catch(error => {
+      console.error("Failed to load appointments:", error);
+      utils.showToast("Could not load appointments", "error");
+    });
+}
+
+function cancelAppointment(index) {
+  if(confirm("Cancel this appointment?")) {
+    const apps = JSON.parse(localStorage.getItem(CONFIG.STORAGE.APPOINTMENTS)) || [];
+    apps.splice(index, 1);
+    localStorage.setItem(CONFIG.STORAGE.APPOINTMENTS, JSON.stringify(apps));
+    displayAppointments();
+    utils.showToast("Cancelled", "warning");
+  }
 }
 
 // :::::::::::::::::::Booking::::::::::::::::::::::::
+
 function initBookingModal() {
-  const modal = document.getElementById("booking-modal"), form = document.getElementById("booking-form"), cancel = document.getElementById("cancel-booking"), dateInp = document.getElementById("booking-date");
+  const modal = document.getElementById("booking-modal");
+  const form = document.getElementById("booking-form");
+  const cancel = document.getElementById("cancel-booking");
+  const dateInp = document.getElementById("booking-date");
+  
+  // NEW: SMS Inputs
+  const smsCheckbox = document.getElementById("sms-notifications");
+  const smsPhoneSection = document.getElementById("sms-phone-section");
+  const phoneNumberInput = document.getElementById("phone-number");
+
   if(dateInp) dateInp.min = utils.getToday();
-  window.openBookingModal = function(id) {
-    const p = doctorsData.find(d => d.id === id); if(!p) return;
-    state.currentBooking = p; document.getElementById("modal-provider-name").textContent = p.name;
-    document.getElementById("modal-provider-mode").textContent = p.mode === 'virtual' ? '🌐 Virtual' : '🏥 In-Person';
-    if(modal?.showModal) modal.showModal(); else { modal?.classList.remove("hidden"); modal?.setAttribute("open","open"); }
-  };
-  window.openBookingModalFromProvider = function(name, spec) {
-    state.currentBooking = { id: Date.now(), name, specialty: spec, mode: "physical", hospital: "Clinic" };
-    document.getElementById("modal-provider-name").textContent = name; document.getElementById("modal-provider-mode").textContent = '🏥 In-Person';
-    if(modal?.showModal) modal.showModal(); else { modal?.classList.remove("hidden"); }
-  };
-  cancel?.addEventListener("click", () => { if(modal?.close) modal.close(); else modal?.classList.add("hidden"); state.currentBooking = null; });
-  modal?.addEventListener("click", e => { if(e.target === modal) { if(modal.close) modal.close(); else modal.classList.add("hidden"); state.currentBooking = null; } });
-  form?.addEventListener("submit", async e => {
-    e.preventDefault(); if(!state.currentBooking || !state.user) { utils.showToast("Please login to book", "error"); return; }
-    const date = document.getElementById("booking-date").value, time = document.getElementById("booking-time").value, notes = document.getElementById("booking-notes").value.trim();
-    const appt = { id: Date.now(), userId: state.user, providerId: state.currentBooking.id, providerName: state.currentBooking.name, hospital: state.currentBooking.hospital, specialty: state.currentBooking.specialty, mode: state.currentBooking.mode, date, time, datetime: `${date}T${time}`, notes, status: "confirmed", createdAt: new Date().toISOString() };
-    try {
-      if(typeof FirestoreService !== 'undefined') {
-        await FirestoreService.createAppointment(appt);
-        appt.synced = true;
+
+  // Toggle SMS Phone Input visibility
+  if(smsCheckbox && smsPhoneSection) {
+    smsCheckbox.addEventListener('change', () => {
+      if(smsCheckbox.checked) {
+        smsPhoneSection.classList.remove("hidden");
+        smsPhoneSection.style.display = "block";
+      } else {
+        smsPhoneSection.classList.add("hidden");
+        smsPhoneSection.style.display = "none";
       }
-      const apps = JSON.parse(localStorage.getItem(CONFIG.STORAGE.APPOINTMENTS)) || []; apps.push(appt);
-      localStorage.setItem(CONFIG.STORAGE.APPOINTMENTS, JSON.stringify(apps)); addToGoogleCalendar(appt); displayAppointments();
-      if(modal?.close) modal.close(); else modal?.classList.add("hidden"); form.reset(); state.currentBooking = null;
-      utils.showToast("✅ Appointment booked!", "success");
-    } catch(err) { console.error("Booking error:", err); utils.showToast("Failed to book. Try again.", "error"); }
+    });
+  }
+
+  window.openBookingModal = function(id) {
+    const p = doctorsData.find(d => d.id === id); 
+    if(!p) return;
+    
+    state.currentBooking = p; 
+    
+    document.getElementById("modal-provider-name").textContent = p.name;
+    document.getElementById("modal-provider-mode").textContent = 
+      p.mode === 'virtual' ? '🌐 Virtual' : '🏥 In-Person';
+      
+    if(modal?.showModal) modal.showModal(); 
+    else { 
+      modal?.classList.remove("hidden"); 
+      modal?.setAttribute("open", "open"); 
+    }
+  };
+
+  window.openBookingModalFromProvider = function(name, spec) {
+    state.currentBooking = { 
+      id: Date.now(), 
+      name, 
+      specialty: spec, 
+      mode: "physical", 
+      hospital: "Clinic" 
+    };
+    
+    document.getElementById("modal-provider-name").textContent = name; 
+    document.getElementById("modal-provider-mode").textContent = '🏥 In-Person';
+    
+    if(modal?.showModal) modal.showModal(); 
+    else { modal?.classList.remove("hidden"); }
+  };
+
+  cancel?.addEventListener("click", () => { 
+    if(modal?.close) modal.close(); 
+    else modal?.classList.add("hidden"); 
+    state.currentBooking = null; 
+  });
+
+  modal?.addEventListener("click", e => { 
+    if(e.target === modal) { 
+      if(modal.close) modal.close(); 
+      else modal.classList.add("hidden"); 
+      state.currentBooking = null; 
+    } 
+  });
+
+  form?.addEventListener("submit", async e => {
+    e.preventDefault();
+    
+    if(!state.currentBooking || !state.user) { 
+      utils.showToast("Please login to book", "error"); 
+      return; 
+    }
+
+    const date = document.getElementById("booking-date").value;
+    const time = document.getElementById("booking-time").value;
+    const notes = document.getElementById("booking-notes").value.trim();
+
+    // Create Appointment Object
+    const appt = { 
+      id: Date.now(), 
+      userId: state.user, 
+      providerId: state.currentBooking.id, 
+      providerName: state.currentBooking.name, 
+      hospital: state.currentBooking.hospital, 
+      specialty: state.currentBooking.specialty, 
+      mode: state.currentBooking.mode, 
+      date, 
+      time, 
+      datetime: `${date}T${time}`, 
+      notes, 
+      status: "confirmed", 
+      createdAt: new Date().toISOString() 
+    };
+
+    try {
+      // 1. Save to Realtime Database (NOT Firestore!)
+      await DatabaseService.createAppointment(appt);
+
+      // 2. Save to LocalStorage
+      const apps = JSON.parse(localStorage.getItem(CONFIG.STORAGE.APPOINTMENTS)) || []; 
+      apps.push(appt); 
+      localStorage.setItem(CONFIG.STORAGE.APPOINTMENTS, JSON.stringify(apps)); 
+
+      // 3. Send SMS Notification (NEW FEATURE)
+      const phoneOptedIn = smsCheckbox?.checked;
+      const phoneNumber = phoneNumberInput?.value.trim();
+
+      if(phoneOptedIn && phoneNumber) {
+        utils.showToast("Sending confirmation SMS...", "info", 2000);
+        
+        try {
+          const response = await fetch('http://localhost:3000/api/send-sms', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              phone: phoneNumber,
+              appointmentId: appt.id,
+              appointmentData: { providerName: appt.providerName, date, time, mode: appt.mode }
+            })
+          });
+          
+          const result = await response.json();
+          if(result.success) {
+            utils.showToast("✅ Confirmation sent via SMS!", "success", 3000);
+          } else {
+            throw new Error("SMS failed");
+          }
+        } catch(err) {
+          console.warn("SMS skipped (server offline or error):", err);
+          // Don't block booking - continue anyway
+          utils.showToast("Appointment booked (SMS skipped)", "warning", 3000);
+        }
+      } else {
+        utils.showToast("✅ Appointment booked successfully!", "success", 3000);
+      }
+
+      // 4. Add to Google Calendar
+      addToGoogleCalendar(appt);
+
+      // 5. Update UI & Close
+      displayAppointments();
+      if(modal?.close) modal.close(); 
+      else modal?.classList.add("hidden"); 
+      form.reset(); 
+      state.currentBooking = null;
+
+    } catch(err) {
+      console.error("Booking error:", err);
+      utils.showToast("Failed to book. Please try again.", "error");
+    }
   });
 }
-
-window.cancelAppointment = function(idx) {
-  if(confirm("Cancel this appointment?")) {
-    const apps = JSON.parse(localStorage.getItem(CONFIG.STORAGE.APPOINTMENTS)) || []; apps.splice(idx, 1);
-    localStorage.setItem(CONFIG.STORAGE.APPOINTMENTS, JSON.stringify(apps)); displayAppointments(); utils.showToast("Cancelled", "warning");
-  }
-};
 
 function addToGoogleCalendar(a) {
   const start = a.datetime.replace(/[-:]/g,'').slice(0,15)+"00Z", end = new Date(new Date(a.datetime).getTime()+3600000).toISOString().replace(/[-:]/g,'').slice(0,15)+"00Z";
@@ -372,3 +640,6 @@ function initOffline() {
     }
   });
 }
+document.getElementById('sms-notifications')?.addEventListener('change', function() {
+  document.getElementById('sms-phone-section')?.classList.toggle('hidden', !this.checked);
+});

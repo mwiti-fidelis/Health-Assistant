@@ -2,7 +2,7 @@
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyALbQTwXNpS3LLfQUEV16pLTkATr_zEDYI",
   authDomain: "healthcare-assistant-5f70b.firebaseapp.com",
-  databaseURL: "https://healthcare-assistant-5f70b-default-rtdb.europe-west1.firebasedatabase.app",
+  databaseURL: "https://healthcare-assistant-5f70b-default-rtdb.europe-west1.firebasedatabase.app/",
   projectId: "healthcare-assistant-5f70b",
   storageBucket: "healthcare-assistant-5f70b.firebasestorage.app",
   messagingSenderId: "221261599350",

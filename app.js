@@ -1,4 +1,4 @@
-const CONFIG = {
+ window.CONFIG_APIS = window.CONFIG_APIS || {
   API: {
     INFERMEDICA: { BASE_URL: "https://api.infermedica.com/v3", APP_ID: "", APP_KEY: "" },
     NPPES: "https://clinicaltables.nlm.nih.gov/api/npi_idv/v3/search"
@@ -19,7 +19,7 @@ const utils = {
   },
 
   initTheme() {
-    const s = localStorage.getItem(CONFIG.STORAGE.THEME) || 'light';
+    const s = localStorage.getItem(CONFIG_APIS.STORAGE.THEME) || 'light';
     document.documentElement.setAttribute('data-theme', s);
     this.updateThemeIcon(s);
   },
@@ -27,7 +27,7 @@ const utils = {
   toggleTheme() {
     const c = document.documentElement.getAttribute('data-theme'), n = c === 'light' ? 'dark' : 'light';
     document.documentElement.setAttribute('data-theme', n);
-    localStorage.setItem(CONFIG.STORAGE.THEME, n);
+    localStorage.setItem(CONFIG_APIS.STORAGE.THEME, n);
     this.updateThemeIcon(n);
     this.showToast(`Switched to ${n} mode`, 'success', 2000);
   },
@@ -35,9 +35,9 @@ const utils = {
   updateThemeIcon(t) { const i = document.querySelector('#theme-toggle i'); if(i) i.className = t === 'light' ? 'fas fa-moon' : 'fas fa-sun'; },
   calculateBMI(w, h) { const hm = h/100; return (w/(hm*hm)).toFixed(1); },
   getBMICategory(bmi) {
-    if(bmi < 18.5) return { cat: 'underweight', color: 'var(--bmi-underweight)', advice: 'Please consider consulting a nutritionist. You can book an appointment below' };
+    if(bmi < 18.5) return { cat: 'underweight', color: 'var(--bmi-underweight)', advice: 'Please consider consulting a nutritionist.' };
     if(bmi < 25) return { cat: 'normal', color: 'var(--bmi-normal)', advice: 'Great job! Maintain your healthy lifestyle.' };
-    if(bmi < 30) return { cat: 'overweight', color: 'var(--bmi-overweight)', advice: 'Small lifestyle changes can help. For more info consider booking an appointment with a healthcare professional.' };
+    if(bmi < 30) return { cat: 'overweight', color: 'var(--bmi-overweight)', advice: 'Small lifestyle changes can help.' };
     return { cat: 'obese', color: 'var(--bmi-obese)', advice: 'Please consult a healthcare professional.' };
   },
   getToday() { return new Date().toISOString().split('T')[0]; },
@@ -57,10 +57,13 @@ document.addEventListener("DOMContentLoaded", () => {
   initBookingModal(); 
   registerSW();
   initOffline();
+  
   document.querySelectorAll('.nav-links a').forEach(l => l.addEventListener('click', e => {
-    e.preventDefault(); const t = document.querySelector(l.getAttribute('href')); if(t) t.scrollIntoView({ behavior: 'smooth' });
+    e.preventDefault(); const t = document.querySelector(l.getAttribute('href')); 
+    if(t) t.scrollIntoView({ behavior: 'smooth' });
   }));
 });
+
 
 // ::::::::::::::::::::Firebase login authentication:::::::::::::::::::
 async function initAuth() {
@@ -70,74 +73,59 @@ async function initAuth() {
   const msgElement = document.getElementById("auth-message");
   const authSection = document.getElementById("auth-section");
   
-  // Get buttons
   const loginBtn = document.getElementById("login-btn");
   const registerBtn = document.getElementById("register-btn");
 
-  // Debugging
   console.log('🔍 Initializing Firebase Auth...');
-
-  // Check if User is Already Logged In
   const auth = firebase.auth();
   
   auth.onAuthStateChanged(user => {
     console.log('👤 Auth State Change:', user ? 'Logged In' : 'Logged Out');
 
     if (user) {
-      // Check if user is logged in
       state.isLoggedIn = true;
-      state.user = user.email.split('@')[0];
+      state.user = user.uid;
       
-      // Clear inputs
       usernameInput.value = '';
       passwordInput.value = '';
       if(msgElement) msgElement.textContent = '';
       
-      // Hide login screen!
       if(authSection) authSection.classList.add("hidden");
       loadUserAppointments(user.uid); 
       
       utils.showToast(`Welcome back, ${state.user}!`, "success", 3000);
-      
-      // Reload appointments for this user
-      loadUserAppointments(user.uid); 
-      
     } else {
-      // User is logged out -> Show Auth Section
       state.isLoggedIn = false;
       state.user = null;
-      
       if(authSection) authSection.classList.remove("hidden");
     }
   });
 
-  // .............LOGIN FUNCTIONALITY..........
   loginBtn.addEventListener("click", () => {
     const email = usernameInput.value.trim();
     const password = passwordInput.value;
 
-    if (!email || !password) {
-      showMessage("Please enter email and password", "error");
-      return;
-    }
-
+    if (!email || !password) { showMessage("Please enter email and password", "error"); return; }
     showMessage("Logging in...", "info");
     
     auth.signInWithEmailAndPassword(email, password)
       .then(() => {
-        // Success: Auth.onAuthStateChanged handles hiding the form
+        console.log("✅ Login success");
       })
       .catch(error => {
-        let errorMsg = error.message;
-        if (error.code === 'auth/wrong-password') errorMsg = "Incorrect password";
-        if (error.code === 'auth/user-not-found') errorMsg = "No account found for this email";
-        
-        showMessage(errorMsg, "error");
-      });
+        console.error("❌ Login error:", error);
+        showMessage(error.message, "error");
+    
+      let errorMsg = error.message;
+      if (error.code === 'auth/wrong-password') errorMsg = "Incorrect password";
+      if (error.code === 'auth/user-not-found') errorMsg = "No account found for this email";
+      showMessage(errorMsg, "error");
+    });
   });
 
-  // ............. REGISTER FUNCTIONALITY ............
   registerBtn.addEventListener("click", () => {
+    console.log("🔥 Register button clicked");
+
     const email = usernameInput.value.trim();
     const password = passwordInput.value;
 
@@ -146,38 +134,26 @@ async function initAuth() {
       return;
     }
 
-    showMessage("Creating account...", "info");
-
     auth.createUserWithEmailAndPassword(email, password)
       .then((cred) => {
-        // Save basic user info to firebase Realtime Database
+        console.log("✅ Account created:", cred.user.uid);
         return db.ref('users/' + cred.user.uid).set({
           email: email,
-          uid: cred.user.uid,
-          createdAt: firebase.database.ServerValue.TIMESTAMP
+          uid: cred.user.uid
         });
       })
-      .then(() => {
-        // Success: Auth.onAuthStateChanged handles hiding the form
-        showMessage("Account created successfully!", "success");
-      })
+      .then(() => showMessage("Account created successfully!", "success"))
       .catch(error => {
-        let errorMsg = error.message;
-        if (error.code === 'auth/email-already-in-use') errorMsg = "Email already registered";
-        if (error.code === 'auth/weak-password') errorMsg = "Password too weak (min 6 chars)";
-        
-        showMessage(errorMsg, "error");
+        console.error("❌ Register error:", error);
+        showMessage(error.message, "error");
       });
   });
 
-  // Helper function to show messages
   function showMessage(text, type) {
     if(msgElement) msgElement.textContent = text;
     if(type === "error") msgElement.style.color = "var(--error)";
     if(type === "success") msgElement.style.color = "var(--success)";
     if(type === "info") msgElement.style.color = "var(--accent)";
-    
-    // Clear message after 5 seconds
     setTimeout(() => { if(msgElement) msgElement.textContent = ''; }, 5000);
   }
 }
@@ -187,17 +163,10 @@ async function loadUserAppointments(userId) {
   try {
     const snapshot = await db.ref('appointments').orderByChild('userId').equalTo(userId).get();
     const appointments = {};
-    snapshot.forEach(child => {
-      appointments[child.key] = child.val();
-    });
-    
-    // Clear local storage to sync with DB
-    localStorage.setItem(CONFIG.STORAGE.APPOINTMENTS, JSON.stringify(Object.values(appointments)));
-    
+    snapshot.forEach(child => { appointments[child.key] = child.val(); });
+    localStorage.setItem(CONFIG_APIS.STORAGE.APPOINTMENTS, JSON.stringify(Object.values(appointments)));
     displayAppointments();
-  } catch (error) {
-    console.error("Error loading appointments:", error);
-  }
+  } catch (error) { console.error("Error loading appointments:", error); }
 }
 
 function initThemeToggle() { document.getElementById('theme-toggle')?.addEventListener('click', () => utils.toggleTheme()); }
@@ -366,7 +335,7 @@ async function fetchRealProviders(term = '', f = {}) {
   try {
     const params = new URLSearchParams({ maxList: "20", df: "NPI,name.full,provider_type,addr_practice.full,phone" });
     if(term) params.append("terms", term); if(f.state) params.append("state", f.state); if(f.city) params.append("city", f.city);
-    const res = await fetch(`${CONFIG.API.NPPES}?${params}`), [total, codes, extra, data] = await res.json();
+    const res = await fetch(`${CONFIG_APIS.API.NPPES}?${params}`), [total, codes, extra, data] = await res.json();
     const providers = data.map((item, i) => ({ npi: codes[i], name: item[1]||"Unknown", specialty: item[2]||"General", address: item[3]||"", phone: item[4]||"", type: classifyType(item[2]), gender: "unknown", mode: "physical", rating: (4+Math.random()).toFixed(1) }));
     load?.classList.add("hidden"); renderProviders(providers); utils.showToast(`Found ${providers.length} providers`, "success");
   } catch(e) { console.error("API Error:", e); load?.classList.add("hidden"); utils.showToast("Using demo data", "warning"); displayDoctors(f); }
@@ -437,9 +406,9 @@ function displayAppointments() {
 
 function cancelAppointment(index) {
   if(confirm("Cancel this appointment?")) {
-    const apps = JSON.parse(localStorage.getItem(CONFIG.STORAGE.APPOINTMENTS)) || [];
+    const apps = JSON.parse(localStorage.getItem(CONFIG_APIS.STORAGE.APPOINTMENTS)) || [];
     apps.splice(index, 1);
-    localStorage.setItem(CONFIG.STORAGE.APPOINTMENTS, JSON.stringify(apps));
+    localStorage.setItem(CONFIG_APIS.STORAGE.APPOINTMENTS, JSON.stringify(apps));
     displayAppointments();
     utils.showToast("Cancelled", "warning");
   }
@@ -554,9 +523,9 @@ function initBookingModal() {
       await DatabaseService.createAppointment(appt);
 
       // 2. Save to LocalStorage
-      const apps = JSON.parse(localStorage.getItem(CONFIG.STORAGE.APPOINTMENTS)) || []; 
+      const apps = JSON.parse(localStorage.getItem(CONFIG_APIS.STORAGE.APPOINTMENTS)) || []; 
       apps.push(appt); 
-      localStorage.setItem(CONFIG.STORAGE.APPOINTMENTS, JSON.stringify(apps)); 
+      localStorage.setItem(CONFIG_APIS.STORAGE.APPOINTMENTS, JSON.stringify(apps)); 
 
       // 3. Send SMS Notification (NEW FEATURE)
       const phoneOptedIn = smsCheckbox?.checked;

@@ -1,13 +1,13 @@
 // Using Firebase Realtime Database (Free Tier)
-// Firebase Configuration
 const FIREBASE_CONFIG = {
-    apiKey: "AIzaSyALbQTWNpS3LLfQUEV16plTkATr_zEDYI",
-    authDomain: "healthcare-assistant-5f70b.firebasapp.com",
-    projectId: "healthcare-assistant-5f70b",
-    storageBucket: "healthcare-assistant-5f70b.appspot.com",
-    messagingSenderId: "221261599350",
-    appId: "1:221261599350:web:d124371400ddecdb004557",
-    measurementId: "G-XMD9PD35JB"
+  apiKey: "AIzaSyALbQTwXNpS3LLfQUEV16pLTkATr_zEDYI",
+  authDomain: "healthcare-assistant-5f70b.firebaseapp.com",
+  databaseURL: "https://healthcare-assistant-5f70b-default-rtdb.europe-west1.firebasedatabase.app/",
+  projectId: "healthcare-assistant-5f70b",
+  storageBucket: "healthcare-assistant-5f70b.firebasestorage.app",
+  messagingSenderId: "221261599350",
+  appId: "1:221261599350:web:d124371400ddecdb004557",
+  measurementId: "G-XMD9PD35JB"
 };
 
 // Initialize Firebase

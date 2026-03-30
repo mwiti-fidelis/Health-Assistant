@@ -1,6 +1,7 @@
 #Secret files and creditials that should never be displayed in the website
 .env
 .env.local
+.env.production
 .env.*.local
 *.pem
 *.key

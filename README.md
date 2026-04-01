@@ -1,4 +1,4 @@
-# HealthCare Assistant 
+# HealthCare Assistant-  http://3.86.177.152:80
 
 A modern healthcare web application providing symptom checking, doctor discovery, appointment booking, and emergency services using external APIs.
 
@@ -9,6 +9,9 @@ A modern healthcare web application providing symptom checking, doctor discovery
    Load Balancer     http://3.86.177.152   
     Web01 (Primary)     http://13.221.234.18   
     Web02 (Secondary)     http://13.83.134.172   
+
+# Health assistant web link
+http://3.86.177.152:80
 
   # 🎯 Features Implemented
 

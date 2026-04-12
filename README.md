@@ -34,7 +34,7 @@ Note: Ensure the correct link url is used to access the web.
     IPApi.co                Location detection for emergency contacts    https://ipapi.co/   
     Google Maps             Location sharing                             https://developers.google.com/maps   
     NPPES ClinicalTables     US provider database                        https://data.nist.gov/published/dataset/NPPES+Data+Release   
-    Twilio SMS                    Appointment reminders (optional)         https://www.twilio.com   
+    Twilio SMS                    Appointment reminders      https://www.twilio.com   
 
   # Backend Infrastructure
 
